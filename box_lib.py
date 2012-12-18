@@ -165,43 +165,120 @@ class BoxNetClient:
 
 
     def get_token(self):
+        """
+        Just returns the latest token which is also saved in the token file
+        """
         return self._AUTH_TOKEN
 
 
-    def search_content(self, search, folder_id="0"):
+    def search_by_name(self, search, folder_id="0"):
         """
         Searches given phrase and returns the id of the folder/file, if not set
         it searches in root folder
         """
         url = "https://www.box.com/api/2.0/folders/{0}".format(folder_id)
         headers = {"Authorization" : "BoxAuth api_key={0}&auth_token={1}".format(self._API_KEY, self._AUTH_TOKEN)}
-
         req = requests.get(url, headers=headers)
-        result = req.content
 
-        # Implementierung einer Suche!
-        j = json.loads(result)
-        j = j["item_collection"]["entries"]
-        print type(j)
+        if req.status_code == 200:
+            result = req.content
 
-        for i in j:
-            if search in i["name"]:
-                print "I found "+i["name"]+" with id: %s" %i["id"]
+            # implementation of a search process
+            j = json.loads(result)
+            j = j["item_collection"]["entries"]
+            print type(j)
+
+            for i in j:
+                if search in i["name"]:
+                    return i["name"], i["id"]
+        else:
+            print "Error while requesting search:"
+            print req.content
 
 
-    def upload_file(self, path):
+    def upload_file(self, path, folder_id="0"):
+        """
+        Uploading a file to Box.com - standard is root folder
+        """
         url = "https://www.box.com/api/2.0/files/content"
         headers = {"Authorization" : "BoxAuth api_key={0}&auth_token={1}".format(self._API_KEY, self._AUTH_TOKEN)}
         data = {"folder_id" : "0"}
         files = {"file": open(path, "rb")}
         req = requests.post(url, headers=headers, data=data, files=files)
-        print req.content
+
+        if req.status_code == 200:
+            return req
+        else:
+            print "Error while requesting file upload:"
+            print req.content
 
 
     def delete_file(self, file_id):
+        """
+        Deleting a file from Box.com account, related to it's id
+        """
         url = "https://api.box.com/2.0/files/"+file_id
         headers = {"Authorization" : "BoxAuth api_key={0}&auth_token={1}".format(self._API_KEY, self._AUTH_TOKEN)}
         req = requests.delete(url, headers=headers)
+        if req.status_code == 200:
+            print "File was sucessfully deleted!"
+        else:
+            print "Error while requesting file deletion:"
+            print req.content
+
+
+    def download_file(self, file_id):
+        """
+        Returns a temporary download link for the selected file
+        """
+        url = "https://api.box.com/2.0/files/{0}/content".format(file_id)
+        headers = {"Authorization" : "BoxAuth api_key={0}&auth_token={1}".format(self._API_KEY, self._AUTH_TOKEN)}
+        req = requests.get(url, allow_redirects=True, headers=headers)
+
+        if req.status_code == 200:
+            return req.url
+        else:
+            print "Error while requesting download link:"
+            print req.content
+
+
+    def get_file_information(self, file_id):
+        """
+        Returns a bunch of informations about the file
+        """
+        url = "https://api.box.com/2.0/files/"+file_id
+        headers = {"Authorization" : "BoxAuth api_key={0}&auth_token={1}".format(self._API_KEY, self._AUTH_TOKEN)}
+        req = requests.get(url, headers=headers)
+
+        if req.status_code == 200:
+            return req.content
+        else:
+            print "Error while requesting file information:"
+            print req.content
+
+
+    def create_shared_link(self, file_id, access="open", unshare_date=None, can_download=True, can_preview=True):
+        """
+        Create a link to share it with other people, different options are:
+
+        access: open/company/collaborators
+        unshare_date: unix timestamp when the file unshares
+        can_download: True/False
+        can_preview: True/False
+        """
+
+        url = "https://api.box.com/2.0/files/"+file_id
+        headers = {"Authorization" : "BoxAuth api_key={0}&auth_token={1}".format(self._API_KEY, self._AUTH_TOKEN)}
+        data = {"shared_link": {"access": access, "unshare_at":unshare_date, "permissions":{"can_download":can_download, "can_preview":can_preview}}}
+        req = requests.put(url, data=json.dumps(data), headers=headers)
+
+        if req.status_code == 200:
+            result = json.loads(req.content)
+            url = result["shared_link"]["url"]
+            return url
+        else:
+            print "Error while requesting a shared link:"
+            print req.content
 
 
 if __name__ == "__main__":
