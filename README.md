@@ -9,6 +9,8 @@ At the moment you can:
 - delete a file
 - search for a phrase (returns found name and it's id)
 
+WARNING: It's just a very early release and under development!
+
 Requests:
 ==
 Website: "www.python-requests.org"
