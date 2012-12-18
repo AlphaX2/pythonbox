@@ -5,9 +5,13 @@ pythonbox
 
 At the moment you can:
 - auth the user at Box.com
+- ask for your used token
 - upload a file
 - delete a file
-- search for a phrase (returns found name and it's id)
+- get file informations
+- search by name (returns found name and it's id)
+- download file (returns temporary download link)
+- create a shared link
 
 WARNING: It's just a very early release and under development!
 
